@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SJRK Music Player</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080b13;color:white;
+ font-family:Arial;padding:20px;
+}
+.app{
+ max-width:430px;margin:auto;
+ background:#151c2b;border-radius:25px;
+ padding:22px;text-align:center;
+}
+.logo{color:#e9bd55;font-size:27px;font-weight:bold}
+.cover{
+ width:190px;height:190px;margin:25px auto;
+ border-radius:25px;
+ background:linear-gradient(135deg,#e8bd55,#49300b);
+ display:grid;place-items:center;font-size:75px;
+}
+h2{margin-bottom:5px}
+#filename{color:#aaa;font-size:13px;word-break:break-word}
+.upload{
+ display:block;padding:15px;margin:12px 0;
+ border-radius:12px;background:#d5aa48;
+ color:black;font-weight:bold;cursor:pointer;
+}
+input{display:none}
+button{
+ padding:13px;border:0;border-radius:12px;
+ background:#d5aa48;color:black;
+ font-weight:bold;font-size:15px;cursor:pointer;
+}
+.controls{display:flex;justify-content:center;gap:12px;margin:22px 0}
+.controls button{width:65px;height:65px;border-radius:50%;font-size:23px}
+.stop{background:#ed5555;color:white}
+#status{color:#50e49a;margin:15px}
+audio{width:100%;margin-top:10px}
+.track{
+ background:#222d40;padding:12px;
+ border-radius:10px;margin-top:10px;
+ text-align:left;display:flex;justify-content:space-between;
+ gap:8px;align-items:center;font-size:13px;
+}
+.track button{padding:8px}
+#playlist{margin-top:15px}
+</style>
+</head>
+<body>
+<div class="app">
+
+ <div class="logo">SJRK MUSIC</div>
+ <div class="cover">♫</div>
+
+ <h2>Music Player</h2>
+ <p id="filename">No Audio Selected</p>
+
+ <label class="upload" for="audioFiles">
+ + UPLOAD AUDIO FROM PHONE
+ </label>
+ <input id="audioFiles" type="file"
+ accept=".mp3,.wav,.m4a,.aac,.ogg,audio/*" multiple>
+
+ <button onclick="chooseDrive()">GOOGLE DRIVE</button>
+
+ <div style="margin-top:20px;color:#e9bd55">
+ ∞ AUTO REPEAT
+ <input type="checkbox" id="repeat" checked
+ style="display:inline;width:18px;height:18px">
+ </div>
+
+ <audio id="player" controls preload="metadata"></audio>
+
+ <div class="controls">
+ <button onclick="play()">▶</button>
+ <button onclick="pause()">Ⅱ</button>
+ <button class="stop" onclick="stop()">■</button>
+ </div>
+
+ <div id="status">Ready to Play</div>
+ <h3>Your Playlist</h3>
+ <div id="playlist"></div>
+
+</div>
+
+<script>
+const player=document.getElementById("player");
+const fileInput=document.getElementById("audioFiles");
+const playlist=document.getElementById("playlist");
+let songs=[];
+let current=-1;
+
+function isAudio(file){
+ return file.type.startsWith("audio/") ||
+ /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name);
+}
+
+fileInput.addEventListener("change",()=>{
+ const files=Array.from(fileInput.files);
+ files.forEach(file=>{
+  if(!isAudio(file)){
+   alert("Only audio files are allowed!");
+   return;
+  }
+  songs.push({
+   name:file.name,
+   url:URL.createObjectURL(file)
+  });
+ });
+ render();
+ fileInput.value="";
+});
+
+function render(){
+ playlist.innerHTML="";
+ songs.forEach((song,i)=>{
+  const div=document.createElement("div");
+  div.className="track";
+  const name=document.createElement("span");
+  name.textContent=song.name;
+  const btn=document.createElement("button");
+  btn.textContent="▶ Play";
+  btn.onclick=()=>loadSong(i,true);
+  div.append(name,btn);
+  playlist.appendChild(div);
+ });
+}
+
+function loadSong(i,autoplay){
+ if(i<0 || i>=songs.length)return;
+ current=i;
+ player.src=songs[i].url;
+ document.getElementById("filename").textContent=songs[i].name;
+ if(autoplay)play();
+}
+
+async function play(){
+ if(!player.src){
+  if(songs.length)loadSong(0,false);
+  else return alert("Please upload an audio file first");
+ }
+ try{
+  await player.play();
+  document.getElementById("status").textContent="♫ Music Playing";
+ }catch(e){
+  document.getElementById("status").textContent="Playback unavailable";
+ }
+}
+
+function pause(){
+ player.pause();
+ document.getElementById("status").textContent="Paused";
+}
+
+function stop(){
+ player.pause();
+ player.currentTime=0;
+ document.getElementById("status").textContent="Stopped";
+}
+
+player.addEventListener("ended",()=>{
+ if(document.getElementById("repeat").checked){
+  player.currentTime=0;
+  player.play();
+ }else if(current+1<songs.length){
+  loadSong(current+1,true);
+ }
+});
+
+function chooseDrive(){
+ alert("Google Drive selection requires Google Picker API setup and your Google Cloud API credentials.");
+}
+
+if("mediaSession" in navigator){
+ navigator.mediaSession.setActionHandler("play",play);
+ navigator.mediaSession.setActionHandler("pause",pause);
+}
+</script>
+</body>
+</html>
